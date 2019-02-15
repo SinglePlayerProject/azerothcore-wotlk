@@ -61,6 +61,9 @@ GameObject::GameObject() : WorldObject(false), MovableMapObject(),
 
     ResetLootMode(); // restore default loot mode
     m_stationaryPosition.Relocate(0.0f, 0.0f, 0.0f, 0.0f);
+
+    // EJ auto fish
+    fishing = false;
 }
 
 GameObject::~GameObject()
@@ -486,6 +489,14 @@ void GameObject::Update(uint32 diff)
         }
         case GO_READY:
         {
+            // EJ auto fish
+            if (GetGoType() == GAMEOBJECT_TYPE_FISHINGNODE)
+            {
+                Unit* caster = GetOwner();
+                Use(caster);
+                break;
+            }
+
             if (m_respawnTime > 0)                          // timer on
             {
                 time_t now = time(NULL);
@@ -1563,18 +1574,53 @@ void GameObject::Use(Unit* user)
                             SetLootState(GO_JUST_DEACTIVATED);
                         }
                         else
+                        {
                             player->SendLoot(GetGUID(), LOOT_FISHING);
+                        }
+
+                        // EJ auto fish
+                        uint64 lguid = player->GetLootGUID();
+                        uint32 maxSlot = loot.GetMaxSlotInLootFor(player);
+                        for (uint32 checkSlot = 0; checkSlot < maxSlot; checkSlot++)
+                        {                            
+                            Loot* loot = NULL;
+                            if (IS_GAMEOBJECT_GUID(lguid))
+                            {
+                                GameObject* go = player->GetMap()->GetGameObject(lguid);
+                                // xinef: cheating protection
+                                //if (player->GetGroup() && player->GetGroup()->GetLootMethod() == MASTER_LOOT && player->GetGUID() != player->GetGroup()->GetMasterLooterGuid())
+                                //    go = NULL;
+
+                                // not check distance for GO in case owned GO (fishing bobber case, for example) or Fishing hole GO
+                                if (!go || ((go->GetOwnerGUID() != player->GetGUID() && go->GetGoType() != GAMEOBJECT_TYPE_FISHINGHOLE) && !go->IsWithinDistInMap(player, INTERACTION_DISTANCE)))
+                                {
+                                    player->SendLootRelease(lguid);
+                                    return;
+                                }
+
+                                loot = &go->loot;
+
+                                player->StoreLootItem(checkSlot, loot);
+                            }
+                        }
+                        player->GetSession()->DoLootRelease(lguid);
                     }
                     else // else: junk
                         player->SendLoot(GetGUID(), LOOT_FISHING_JUNK);
                         
                     tmpfish = true;
+
+                    // EJ auto fish
+                    fishing = true;
                     break;
                 }
                 case GO_JUST_DEACTIVATED:                   // nothing to do, will be deleted at next update
                     break;
                 default:
                 {
+                    // EJ auto fish
+                    fishing = true;
+
                     SetLootState(GO_JUST_DEACTIVATED);
 
                     WorldPacket data(SMSG_FISH_NOT_HOOKED, 0);
@@ -1584,9 +1630,20 @@ void GameObject::Use(Unit* user)
             }
 
             if(tmpfish)
+            {
                 player->FinishSpell(CURRENT_CHANNELED_SPELL, true);
+
+                // EJ auto fish
+                if (fishing)
+                {
+                    player->CastSpell(player, 7620, false);
+                }
+                fishing = false;
+            }
             else
+            {
                 player->InterruptSpell(CURRENT_CHANNELED_SPELL, true, true, true);
+            }
             return;
         }
 

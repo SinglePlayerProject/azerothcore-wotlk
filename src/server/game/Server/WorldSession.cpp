@@ -39,6 +39,10 @@
 #include "LuaEngine.h"
 #endif
 
+ // EJ robot
+#include "RobotAI.h"
+#include "RobotManager.h"
+
 namespace {
 
 std::string const DefaultPlayerName = "<none>";
@@ -114,6 +118,9 @@ WorldSession::WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, uint8
     m_currentBankerGUID(0),
     timeWhoCommandAllowed(0)
 {
+    // EJ robot
+    isRobot = false;
+
     memset(m_Tutorials, 0, sizeof(m_Tutorials));
 
     _warden = NULL;
@@ -189,6 +196,19 @@ uint32 WorldSession::GetGuidLow() const
 /// Send a packet to the client
 void WorldSession::SendPacket(WorldPacket const* packet)
 {
+    // EJ robot
+    if (isRobot)
+    {
+        if (_player)
+        {
+            if (_player->rai)
+            {
+                _player->rai->HandlePacket((*packet));
+            }
+        }
+        return;
+    }
+
     if (!m_Socket)
         return;
 
@@ -248,6 +268,27 @@ void WorldSession::QueuePacket(WorldPacket* new_packet)
 /// Update the WorldSession (triggered by World update)
 bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 {
+    // EJ robot
+    if (isRobot)
+    {
+        ProcessQueryCallbacks();
+        if (_player)
+        {
+            if (_player->IsBeingTeleportedNear())
+            {
+                WorldPacket pkt(MSG_MOVE_TELEPORT_ACK, 20);
+                pkt.append(_player->GetPackGUID());
+                pkt << uint32(0); // flags
+                pkt << uint32(0); // time
+                HandleMoveTeleportAck(pkt);
+            }
+            if (_player->IsBeingTeleportedFar())
+                _player->GetSession()->HandleMoveWorldportAckOpcode();
+        }
+
+        return true;
+    }
+
     if (updater.ProcessLogout())
     {
         UpdateTimeOutTime(diff);
@@ -463,6 +504,26 @@ void WorldSession::LogoutPlayer(bool save)
 
     if (_player)
     {
+        // EJ robot
+        if (!isRobot)
+        {
+            Group* myGroup = _player->GetGroup();
+            if (myGroup)
+            {
+                for (GroupReference* groupRef = myGroup->GetFirstMember(); groupRef != nullptr; groupRef = groupRef->next())
+                {
+                    Player* member = groupRef->GetSource();
+                    if (member)
+                    {
+                        if (member->GetSession()->isRobot)
+                        {
+                            sRobotManager->UninviteRobot(member);
+                        }
+                    }
+                }
+            }
+        }
+
         if (uint64 lguid = _player->GetLootGUID())
             DoLootRelease(lguid);
 

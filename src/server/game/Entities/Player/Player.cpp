@@ -78,6 +78,9 @@
 #include "ScriptMgr.h"
 #include "GameGraveyard.h"
 
+ // EJ robot
+#include "RobotAI.h"
+
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -672,6 +675,11 @@ void KillRewarder::Reward()
 #endif
 Player::Player(WorldSession* session): Unit(true), m_mover(this)
 {
+    // EJ robot
+    rai = NULL;
+    groupRole = 0;
+    newPlayer = false;
+
 #ifdef _MSC_VER
 #pragma warning(default:4355)
 #endif
@@ -3171,6 +3179,12 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate)
 
     if (!IsAlive() && !GetBattlegroundId())
         return;
+
+    // EJ robot
+    if (GetSession()->isRobot)
+    {
+        return;
+    }
 
     if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_NO_XP_GAIN))
         return;

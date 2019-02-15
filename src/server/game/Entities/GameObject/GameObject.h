@@ -927,5 +927,8 @@ class GameObject : public WorldObject, public GridObject<GameObject>, public Mov
             return IsInRange(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), dist2compare);
         }
         GameObjectAI* m_AI;
+
+        // EJ auto fish
+        bool fishing;
 };
 #endif

@@ -15,6 +15,8 @@ CollectSourceFiles(
   PRIVATE_SOURCES
   # Exclude
   ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders)
+file(GLOB_RECURSE sources_Marketer Marketer/*.cpp Marketer/*.h)
+file(GLOB_RECURSE sources_Robot Robot/*.cpp Robot/*.h)
 
 if (USE_COREPCH)
   set(PRIVATE_PCH_HEADER PrecompiledHeaders/gamePCH.h)

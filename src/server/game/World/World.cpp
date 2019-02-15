@@ -83,6 +83,13 @@
 #include "LuaEngine.h"
 #endif
 
+// EJ robot
+#include "RobotConfig.h"
+#include "RobotManager.h"
+// EJ marketer
+#include "MarketerConfig.h"
+#include "MarketerManager.h"
+
 ACE_Atomic_Op<ACE_Thread_Mutex, bool> World::m_stopEvent = false;
 uint8 World::m_ExitCode = SHUTDOWN_EXIT_CODE;
 uint32 World::m_worldLoopCounter = 0;
@@ -1972,6 +1979,13 @@ void World::SetInitialWorldSettings()
         sLog->outString("AzerothCore dry run completed, terminating.");
         exit(0);
     }
+
+    // EJ marketer
+    sMarketerConfig->LoadMarketerConfig();
+    sMarketerManager->ResetMarketer();
+
+    // EJ robot
+    sRobotConfig->LoadRobotConfig();
 }
 
 void World::DetectDBCLang()
@@ -2239,6 +2253,14 @@ void World::Update(uint32 diff)
     // And last, but not least handle the issued cli commands
     ProcessCliCommands();
 
+    // EJ marketer
+    sMarketerManager->UpdateSeller(diff);
+    sMarketerManager->UpdateBuyer(diff);
+
+    // EJ robot
+    sRobotManager->UpdateManager(diff);
+    sRobotManager->UpdateRobots();
+
     sScriptMgr->OnWorldUpdate(diff);
 
     SavingSystemMgr::Update(diff);
@@ -2481,6 +2503,9 @@ void World::ShutdownServ(uint32 time, uint32 options, uint8 exitcode)
     // ignore if server shutdown at next tick
     if (IsStopped())
         return;
+
+    // EJ robot
+    sRobotManager->LogoutRobots();
 
     m_ShutdownMask = options;
     m_ExitCode = exitcode;

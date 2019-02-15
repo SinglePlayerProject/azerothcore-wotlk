@@ -1201,6 +1201,19 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder* holder)
         }
     }
 
+    // EJ robot
+    if (isRobot)
+    {
+        std::ostringstream loginBroadCastStream;
+        loginBroadCastStream << pCurrChar->GetName() << " logged in";
+        sWorld->SendServerMessage(ServerMessageType::SERVER_MSG_STRING, loginBroadCastStream.str().c_str());
+
+        if (pCurrChar->GetFreeTalentPoints() == pCurrChar->getLevel() - 9)
+        {
+            pCurrChar->newPlayer = true;
+        }
+    }
+
     sScriptMgr->OnPlayerLogin(pCurrChar);
     delete holder;
 }
@@ -2683,4 +2696,19 @@ void WorldSession::HandleCharFactionOrRaceChange(WorldPacket& recvData)
     data << uint8(facialHair);
     data << uint8(race);
     SendPacket(&data);
+}
+
+void WorldSession::LoginPlayer(uint64 pmGUID)
+{
+    m_playerLoading = true;
+
+    LoginQueryHolder *holder = new LoginQueryHolder(GetAccountId(), pmGUID);
+    if (!holder->Initialize())
+    {
+        delete holder;                                      // delete all unprocessed queries
+        m_playerLoading = false;
+        return;
+    }
+
+    _charLoginCallback = CharacterDatabase.DelayQueryHolder((SQLQueryHolder*)holder);
 }
