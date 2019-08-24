@@ -289,7 +289,7 @@ LfgCompatibility LFGQueue::CheckCompatibility(Lfg5Guids const& checkWith, const 
         return LFG_INCOMPATIBLES_MULTIPLE_LFG_GROUPS;
 
     // Group with less that MAXGROUPSIZE members always compatible
-    if (check.size() == 1 && numPlayers < MAXGROUPSIZE)
+    if (!sLFGMgr->IsSoloLFG() && check.size() == 1 && numPlayers < MAXGROUPSIZE)
     {
         LfgQueueDataContainer::iterator itQueue = QueueDataStore.find(check.front());
         LfgRolesMap roles = itQueue->second.roles;
@@ -386,7 +386,7 @@ LfgCompatibility LFGQueue::CheckCompatibility(Lfg5Guids const& checkWith, const 
     }
 
     // Enough players?
-    if (numPlayers != MAXGROUPSIZE)
+    if (!sLFGMgr->IsSoloLFG() && numPlayers != MAXGROUPSIZE)
     {
         strGuids.addRoles(proposalRoles);
         for (uint8 i=0; i<5 && check.guid[i]; ++i)

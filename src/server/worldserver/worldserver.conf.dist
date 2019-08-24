@@ -3266,5 +3266,11 @@ Calculate.Gameoject.Zone.Area.Data = 0
 
 LFG.Location.All = 0
 
+#     This option disable the search for random players, but you can use the LFG in solo or with a small group that less then 5 players
+#        Default: 0 - Disable  
+#                 1 - Enable  
+
+LFG.SoloMode = 1
+
 #
 ###################################################################################################

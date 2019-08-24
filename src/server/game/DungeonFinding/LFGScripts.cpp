@@ -17,6 +17,7 @@
 #include "ScriptMgr.h"
 #include "ObjectAccessor.h"
 #include "WorldSession.h"
+#include "Configuration/Config.h"
 
 namespace lfg
 {
@@ -55,6 +56,14 @@ void LFGPlayerScript::OnLogout(Player* player)
 
 void LFGPlayerScript::OnLogin(Player* player)
 {
+    if (sConfigMgr->GetIntDefault("LFG.SoloMode", true))
+    {
+        if (!sLFGMgr->IsSoloLFG())
+        {
+            sLFGMgr->ToggleSoloLFG();
+        }
+    }
+
     if (!sLFGMgr->isOptionEnabled(LFG_OPTION_ENABLE_DUNGEON_FINDER | LFG_OPTION_ENABLE_RAID_BROWSER))
         return;
 
